@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ROY AI - Voice & Face Command Assistant</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background: radial-gradient(circle at top, #04162b 0%, #010308 45%, #000 100%);
+      color: #00ffff;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      text-align: center;
+      position: relative;
+      z-index: 10;
+    }
+    .logo-wrap {
+      margin-bottom: 20px;
+    }
+    .logo-circle {
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(0,255,255,0.3) 0%, transparent 70%);
+      border: 2px solid #00ffff;
+      border-radius: 50%;
+      position: relative;
+      margin: 0 auto;
+      animation: pulse 2s infinite;
+    }
+    .logo-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2em;
+      font-weight: bold;
+      text-shadow: 0 0 10px #00ffff;
+      z-index: 2;
+    }
+    .logo-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 200px;
+      height: 200px;
+      border: 1px solid rgba(0,255,255,0.5);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: rotate 10s linear infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 20px #00ffff; }
+      50% { box-shadow: 0 0 50px #00ffff, 0 0 80px #00ffff; }
+    }
+    @keyframes rotate { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+    #waveform {
+      height: 50px;
+      background: linear-gradient(to right, #00ffff, #ff00ff);
+      margin: 20px auto;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      justify-content: space-around;
+      align-items: end;
+    }
+    .bar {
+      width: 4px;
+      background: #00ffff;
+      animation: bounce 1s infinite ease-in-out;
+    }
+    .bar:nth-child(2) { animation-delay: 0.1s; }
+    .bar:nth-child(3) { animation-delay: 0.2s; }
+    .bar:nth-child(4) { animation-delay: 0.3s; }
+    @keyframes bounce {
+      0%, 100% { height: 10px; }
+      50% { height: 40px; }
+    }
+    #input-area, #output-area {
+      background: rgba(0,0,0,0.7);
+      border: 1px solid #00ffff;
+      padding: 10px;
+      margin: 10px;
+      min-height: 20px;
+      border-radius: 5px;
+      font-size: 1.1em;
+    }
+    button {
+      background: linear-gradient(45deg, #00ffff, #ff00ff);
+      border: none;
+      color: #000;
+      padding: 10px 20px;
+      font-size: 1em;
+      font-weight: bold;
+      border-radius: 20px;
+      cursor: pointer;
+      margin: 5px;
+      transition: all 0.3s;
+    }
+    button:hover { transform: scale(1.05); box-shadow: 0 0 20px #00ffff; }
+    button.listening { background: #ff0000; }
+    input { padding: 10px; width: 300px; background: rgba(0,0,0,0.8); border: 1px solid #00ffff; color: #00ffff; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo-wrap">
+      <div class="logo-circle">
+        <span class="logo-text">ROY</span>
+        <div class="logo-ring"></div>
+      </div>
+    </div>
+    <div id="waveform">
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="bar"></div>
+    </div>
+    <div id="input-area">Bolo ya type karo command...</div>
+    <button id="listen-btn">🎤 Mic ON</button>
+    <input type="text" id="text-input" placeholder="Ya yahan type karo...">
+    <button onclick="sendText()">Send</button>
+    <div id="output-area">ROY ready! "Hello" bolo test ke liye.</div>
+  </div>
+
+  <script>
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'en-IN'; // Hindi-English mix ke liye
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    const synth = window.speechSynthesis;
+    const listenBtn = document.getElementById('listen-btn');
+    const inputArea = document.getElementById('input-area');
+    const outputArea = document.getElementById('output-area');
+    const textInput = document.getElementById('text-input');
+
+    let isListening = false;
+
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-IN';
+      utterance.rate = 0.9;
+      synth.speak(utterance);
+    }
+
+    function processCommand(transcript) {
+      inputArea.textContent = transcript;
+      let response = '';
+      transcript = transcript.toLowerCase();
+
+      if (transcript.includes('hello') || transcript.includes('hi') || transcript.includes('roy')) {
+        response = 'Haan ji, ROY yahan hai! Kya command hai? Play song, time, search bolo.';
+      } else if (transcript.includes('play') || transcript.includes('song')) {
+        const song = transcript.replace(/play|song|gaana/gi, '').trim();
+        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(song || 'music')}`);
+        response = `YouTube pe ${song || 'music'} play kar raha hoon.`;
+      } else if (transcript.includes('time')) {
+        const now = new Date().toLocaleTimeString();
+        response = `Abhi time hai ${now}.`;
+      } else if (transcript.includes('search')) {
+        const query = transcript.replace('search', '').trim();
+        window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`);
+        response = `${query} search kar raha hoon.`;
+      } else {
+        response = 'Sorry ji, yeh command nahi samjha. "play song", "time", "search XYZ" try karo.';
+      }
+
+      outputArea.textContent = response;
+      speak(response);
+    }
+
+    recognition.onstart = () => {
+      isListening = true;
+      listenBtn.textContent = '🔴 Listening...';
+      listenBtn.classList.add('listening');
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      processCommand(transcript);
+    };
+
+    recognition.onend = () => {
+      isListening = false;
+      listenBtn.textContent = '🎤 Mic ON';
+      listenBtn.classList.remove('listening');
+    };
+
+    listenBtn.onclick = () => {
+      if (isListening) {
+        recognition.stop();
+      } else {
+        recognition.start();
+      }
+    };
+
+    function sendText() {
+      const text = textInput.value.trim();
+      if (text) {
+        processCommand(text);
+        textInput.value = '';
+      }
+    }
+
+    // Page load pe welcome
+    window.onload = () => {
+      speak('ROY activated. Voice ya text se commands do.');
+    };
+  </script>
+</body>
+</html>
